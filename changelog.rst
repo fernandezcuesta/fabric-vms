@@ -1,0 +1,6 @@
+- 0.2.1 - Add safe_run, get_shadowset_members
+- 0.2.0 - Add PML addon, refactor
+- 0.1.3 - Add queue job stop/start
+- 0.1.2 - Add lsof wrapper
+- 0.1.1 - Add put, get wrappers
+- 0.1.0 - Initial version
