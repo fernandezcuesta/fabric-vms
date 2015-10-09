@@ -6,18 +6,14 @@ import cStringIO
 import random
 import string
 
-from fabric.api import env, hide, put, settings, show
-from ..openvms import run
+from fabric.api import env, hide, settings, show
+from ..openvms import run, put, SEPARATOR
 
 
 __all__ = (
            'run_pml_commands',
            'run_pml_file'
 )
-
-
-SEPARATOR = '\r\n'  # newline separator
-env.setdefault('temp_dir', 'TCPIP$SSH_HOME')  # Default temporary file folder
 
 
 def run_pml_commands(cmd_list):
@@ -59,7 +55,7 @@ def run_pml_file(pml_file, out_file=None, show_running=True):
     # First we need to upload the PML file to the remote host
     pml_filename = \
         pml_file if isinstance(pml_file, str) \
-        else '{}:fabric_temp.pml'.format(env.temp_dir)
+        else '{}:FABRIC_TEMP.PML'.format(env.temp_dir)
 
     with hide('running'):
         put(pml_file, pml_filename)

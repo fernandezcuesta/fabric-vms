@@ -1,1 +1,0 @@
-/data/Large_files/SMSC_SP7/fabfile_smtfw.py

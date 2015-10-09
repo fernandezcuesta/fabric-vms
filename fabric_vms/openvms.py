@@ -388,9 +388,7 @@ def cluster_nodes():
     """ Returns an array with the nodes of the cluster """
     nodes = []
     with hide('everything'):
-        cluster_res = run_clusterwide('WRITE SYS$OUTPUT F$GETSYI("NODENAME")')
-        for line in cluster_res.split(SEPARATOR):
-            line = line.strip()
-            if line and "%SYSMAN-I-OUTPUT" not in line:
-                nodes.append(line.strip())
+        for line in run('SHOW CLUSTER').split(SEPARATOR):
+            if line and "MEMBER " in line:
+                nodes.append(line.split('|')[1])
     return nodes

@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 import fabric_vms
-
 
 requires = ['fabric >= 1.10, < 2.0']
 
@@ -20,7 +19,7 @@ setup(
     author_email='fernandez.cuesta@gmail.com',
     description="An addon for managing OpenVMS hosts with fabric",
     long_description=README + '\n' + CHANGELOG,
-    packages=['fabric_vms'],
+    packages=find_packages(),
     include_package_data=True,
     install_requires=requires,
     classifiers=[

@@ -1,8 +1,8 @@
-# Fabric-vms
+# Fabric-VMS
 
 An addon for managing OpenVMS hosts with [`Fabric`](http://www.fabfile.org).
 It wraps some of the methods available in Fabric enabling a user to execute
-commands on an OpenVMS (tested with OVMS 7.3 and 8.x series) host.
+commands on an OpenVMS (tested with OVMS 7.3 and 8.x releases) host.
 
 There are no special requirements for the host, i.e.
 [GNV](http://gnv.sourceforge.net/),

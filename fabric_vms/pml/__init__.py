@@ -3,4 +3,4 @@
 """ Addon for running arbitrary PML commands on Xura's v5 SMSC
 """
 
-from pml import *
+from .pml import run_pml_commands, run_pml_file
