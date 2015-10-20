@@ -7,7 +7,7 @@ import fabric_vms
 
 requires = ['fabric >= 1.10, < 2.0']
 
-README = open('README.md').read()
+README = open('README.rst').read()
 CHANGELOG = open('changelog.rst').read()
 
 

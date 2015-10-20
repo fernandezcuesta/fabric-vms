@@ -27,6 +27,7 @@ As an additional feature, an extra module allows to run arbitrary commands on
 imported as follows:
 
 .. code-block:: py
+
     from fabric_vms import pml
 
 
