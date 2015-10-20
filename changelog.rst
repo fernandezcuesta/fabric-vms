@@ -1,4 +1,4 @@
-
+- 0.2.2 - Add documentation example
 - 0.2.1 - Add safe_run, get_shadowset_members
 - 0.2.0 - Add PML addon, refactor
 - 0.1.3 - Add queue job stop/start
