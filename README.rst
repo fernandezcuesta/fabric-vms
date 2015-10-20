@@ -7,7 +7,7 @@ commands on an OpenVMS (tested with OVMS 7.3 and 8.x releases) host.
 
 Install
 *******************************************************************************
-fabric_vms is on PyPI, so run:
+``fabric_vms`` is on PyPI, so run:
 
 .. code-block:: bash
 
