@@ -1,4 +1,4 @@
-# Fabric-VMS
+# fabric_vms
 
 An addon for managing OpenVMS hosts with [`Fabric`](http://www.fabfile.org).
 It wraps some of the methods available in Fabric enabling a user to execute
