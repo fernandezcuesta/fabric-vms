@@ -1,23 +1,20 @@
-===============================================================================
 **fabric_vms** - An addon for managing OpenVMS hosts with fabric_
-===============================================================================
+###############################################################################
 
 An addon for managing OpenVMS hosts with fabric_.
 It wraps some of the methods available in Fabric enabling a user to execute
 commands on an OpenVMS (tested with OVMS 7.3 and 8.x releases) host.
 
--------------------------------------------------------------------------------
- Install
--------------------------------------------------------------------------------
+Install
+*******************************************************************************
 fabric_vms is on PyPI, so run:
 
 .. code-block:: bash
 
     pip install fabric_vms
 
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- Compatibility
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Compatibility
+===============================================================================
 
 There are no special requirements for the managed hosts, in particular
 GNV_, vmspython_ are **not required**.
@@ -26,15 +23,16 @@ Only a subset of fabric_'s commands are ported, pull requests are more than
 welcome.
 
 As an additional feature, an extra module allows to run arbitrary commands on
-[Xura](http://www.xura.com/)'s v5 SMSC platform `PML` interpreter if imported
-as follows:
+`Xura <http://www.xura.com/>`__'s v5 SMSC platform `PML` interpreter if
+imported as follows:
 
 .. code-block:: py
     from fabric_vms import pml
 
--------------------------------------------------------------------------------
- Usage examples
--------------------------------------------------------------------------------
+
+Usage examples
+*******************************************************************************
+An example of ``fabfile`` using ``fabric_vms.safe_run()`` wrapper:
 
 fabfile.py
 ===============================================================================
