@@ -29,8 +29,8 @@ As an additional feature, an extra module allows to run arbitrary commands on
 [Xura](http://www.xura.com/)'s v5 SMSC platform `PML` interpreter if imported
 as follows:
 
-```python
-from fabric_vms import pml
+.. code-block:: py
+    from fabric_vms import pml
 
 -------------------------------------------------------------------------------
  Usage examples
@@ -39,6 +39,7 @@ from fabric_vms import pml
 fabfile.py
 ===============================================================================
 .. code-block:: py
+
     from fabric.api import env, task
     from fabric.utils import puts
 
