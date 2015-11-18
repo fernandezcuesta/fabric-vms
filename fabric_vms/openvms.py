@@ -358,21 +358,27 @@ def run_clusterwide(cmd_list):
 
 def run_script_clusterwide(sysman_script, show_running=True):
     """ Run a script clusterwide by invoking SYSMAN """
-    # sysman_script may be a filename, or a file-like object
+    return run_script(dcl_script=sysman_script,
+                      prefix='MCR SYSMAN',
+                      show_running=show_running)
 
+
+def run_script(dcl_script, prefix=None, show_running=False):
+    """ Run a script remotely """
+    # dcl_script may be a filename, or a file-like object
     # first we need to upload the script file to the remote host
     script_filename = \
-        sysman_script if isinstance(sysman_script, str) \
+        dcl_script if isinstance(dcl_script, str) \
         else '{}FABRIC_TEMP.TMP'.format(env.temp_dir)
     with settings(hide('running')):
-        put(sysman_script, script_filename)
+        put(dcl_script, script_filename)
 
+    # then we run the script file
     with settings(show('running') if show_running else hide('running')):
-        # then we run SYSMAN with the script file
-        result = run('MCR SYSMAN @{}'.format(script_filename))
-
+        result = run('{}@{}'.format('%s ' % prefix if prefix else '',
+                                    script_filename))
+    # Remove the temporary script file
     with settings(hide('running')):
-        # Remove the temporary script file
         run('DELETE /NOLOG {};*'.format(script_filename))
     return result
 
