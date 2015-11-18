@@ -41,6 +41,7 @@ __all__ = (
            'put',
            'queue_job',
            'run',
+           'run_script',
            'run_clusterwide',
            'run_script_clusterwide',
            'safe_run'
@@ -367,9 +368,11 @@ def run_script(dcl_script, prefix=None, show_running=False):
     """ Run a script remotely """
     # dcl_script may be a filename, or a file-like object
     # first we need to upload the script file to the remote host
-    script_filename = \
-        dcl_script if isinstance(dcl_script, str) \
-        else '{}FABRIC_TEMP.TMP'.format(env.temp_dir)
+    if isinstance(dcl_script, str):
+        script_filename = dcl_script
+    else:
+        script_filename = '{}FABRIC_TEMP.TMP'.format(env.temp_dir)
+
     with settings(hide('running')):
         put(dcl_script, script_filename)
 
