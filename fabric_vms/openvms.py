@@ -178,9 +178,9 @@ def _execute_openvms(f):
         with settings(hide('everything'),
                       ok_ret_codes=[-1]):
             stdout, result_stderr, _ = f(*args, **wrapped_kwargs)
-        stdout = stdout.split('\n')
+        stdout = stdout.splitlines()
         # last line will have the severity code, in case it's even all is OK
-        return ('\n'.join(stdout[:-1]), result_stderr, 1 - int(stdout[-1]) % 2)
+        return (stdout[:-1], result_stderr, 1 - int(stdout[-1] % 2))
     return _wrapper
 
 
@@ -228,7 +228,7 @@ def run(*args, **kwargs):
     """
     _result = fabric.operations.run(*args, **kwargs)
     if output.stdout and _result.stdout:
-        for line in _result.stdout.split('\n'):
+        for line in _result.stdout:
             print('[%s] out: %s' % (env.host_string, line))
     return _result
 
