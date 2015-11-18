@@ -19,11 +19,12 @@ import random
 import re
 import string
 from collections import namedtuple
+from os import path
 
 import fabric
 import fabric.context_managers
-from fabric.api import (abort, get as operations_get, hide,
-                        put as operations_put, settings, show)
+from fabric.api import (abort, get as api_get, hide,
+                        put as api_put, settings, show)
 from fabric.contrib.console import confirm
 from fabric.network import needs_host, ssh_config
 from fabric.operations import (_execute as _operations_execute,
@@ -38,6 +39,7 @@ __all__ = (
            'get',
            'get_shadowset_members',
            'lsof',
+           'print_file',
            'put',
            'queue_job',
            'run',
@@ -135,8 +137,8 @@ def _prefix_commands(command, which):
     return prefix + command
 
 
-def cd(path):
-    return fabric.context_managers._setenv({'cwd': path})
+def cd(folder):
+    return fabric.context_managers._setenv({'cwd': folder})
 
 
 def _execute_openvms(f):
@@ -204,8 +206,18 @@ def _override_execute(f):
     return wrapper
 
 
-@_override_execute
 @_override_prefix_commands
+def _common_overrides(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        _check_if_using_the_correct_account()
+        with settings(use_shell=False, no_keys=True, no_agent=True):
+            return f(*args, **kwargs)
+    return wrapper
+
+
+@_override_execute
+@_common_overrides
 def run(*args, **kwargs):
     """
         wrapper overriding fabric.operations.run
@@ -214,10 +226,7 @@ def run(*args, **kwargs):
         - no_agent and no_keys due to SSH2
         - use_shell=False (assuming GNV isn't installed) due to DCL shell
     """
-
-    with settings(use_shell=False, no_keys=True, no_agent=True):
-        _check_if_using_the_correct_account()
-        _result = fabric.operations.run(*args, **kwargs)
+    _result = fabric.operations.run(*args, **kwargs)
     if output.stdout and _result.stdout:
         for line in _result.stdout.split('\n'):
             print('[%s] out: %s' % (env.host_string, line))
@@ -251,12 +260,13 @@ def _get_path(remote_path):
         (remote_dir, remote_name) = remote_name.split(']')
         remote_path = '{0}{1}{2}'.format(
             (remote_path.rstrip('/'), '/') if remote_path else ('', ''),
-            remote_dir
+            remote_dir[1:]  # remote trailing '['
         )
 
     return (remote_path, remote_name)
 
 
+@_common_overrides
 def put(local_path=None, remote_path=None, use_glob=True):
     """
     Overrides operations.put, taking care of whether the remote_path is
@@ -264,19 +274,23 @@ def put(local_path=None, remote_path=None, use_glob=True):
     Bear in mind that SFTP server runs as a detached process and some logical
     names are missing, (i.e. sys$login, sys$scratch) unless defined for OTHER
     (see http://bit.ly/1JSN5mB).
+    local_path might be a filename or a file object.
     """
 
     (remote_path, remote_name) = _get_path(remote_path or env.temp_dir)
+    if isinstance(local_path, str):
+        local_path = path.abspath(local_path)
     with cd(remote_path):
-        return operations_put(local_path=local_path,
-                              remote_path=remote_name,
-                              use_glob=use_glob,
-                              use_sudo=False,  # override all other parameters
-                              mirror_local_mode=False,
-                              mode=None,
-                              temp_dir="")
+        return api_put(local_path=local_path,
+                       remote_path=remote_name,
+                       use_glob=use_glob,
+                       use_sudo=False,  # override all other parameters
+                       mirror_local_mode=False,
+                       mode=None,
+                       temp_dir="")
 
 
+@_common_overrides
 def get(remote_path, local_path=None):
     """
     Overrides operations.get, taking care of whether the remote_path is
@@ -284,14 +298,33 @@ def get(remote_path, local_path=None):
     Bear in mind that SFTP server runs as a detached process and some logical
     names are missing, (i.e. sys$login, sys$scratch) unless defined for OTHER
     (see http://bit.ly/1JSN5mB).
+    local_path might be a filename or a file object.
     """
 
     (remote_path, remote_name) = _get_path(remote_path)
+    if isinstance(local_path, str):
+        local_path = path.abspath(local_path)
     with cd(remote_path):
-        return operations_get(remote_name,
-                              local_path=local_path,
-                              use_sudo=False,  # override this, useless here
-                              temp_dir="")  # same as line above
+        return api_get(remote_name,
+                       local_path=local_path,
+                       use_sudo=False,  # override this, useless here
+                       temp_dir="")  # same as line above
+
+
+def print_file(remote_filename):
+    """
+    Gets and returns the content of a remote file.
+    Do this instead of call type in order to avoid console width issues.
+    """
+    temp_file = cStringIO.StringIO()
+    with hide('everything'):
+        get(remote_path=remote_filename,
+            local_path=temp_file)
+    temp_file.seek(0)
+    content = temp_file.read()
+    temp_file.close()
+    print(content)
+    return content
 
 
 def lsof(drive_id):
