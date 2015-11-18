@@ -179,8 +179,11 @@ def _execute_openvms(f):
                       ok_ret_codes=[-1]):
             stdout, result_stderr, _ = f(*args, **wrapped_kwargs)
         stdout = stdout.splitlines()
+
         # last line will have the severity code, in case it's even all is OK
-        return (stdout[:-1], result_stderr, 1 - int(stdout[-1]) % 2)
+        return ('\n'.join(stdout[:-1]),
+                result_stderr,
+                1 - int(stdout[-1]) % 2)
     return _wrapper
 
 
@@ -228,9 +231,14 @@ def run(*args, **kwargs):
     """
     _result = fabric.operations.run(*args, **kwargs)
     if output.stdout and _result.stdout:
-        for line in _result.stdout:
-            print('[%s] out: %s' % (env.host_string, line))
+        _pretty_print(_result.stdout)
     return _result
+
+
+def _pretty_print(content):
+    """ Print the output of a command with a SYSTEM [out] prefix """
+    for line in content.splitlines():
+        print('[%s] out: %s' % (env.host_string, line))
 
 
 def safe_run(command):
@@ -323,7 +331,7 @@ def print_file(remote_filename):
     temp_file.seek(0)
     content = temp_file.read()
     temp_file.close()
-    print(content)
+    _pretty_print(content)
     return content
 
 
