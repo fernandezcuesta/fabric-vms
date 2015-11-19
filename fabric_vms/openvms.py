@@ -384,7 +384,7 @@ def lsof(drive_id):
         return thing
 
 
-def run_clusterwide(cmd_list, show_running=False):
+def run_clusterwide(cmd_list, show_running=True):
     """
         Run a list of commands clusterwide with SYSMAN
     """
@@ -396,10 +396,13 @@ def run_clusterwide(cmd_list, show_running=False):
 
     for cmd in cmd_list:
         cmd_file.write('DO %s\n' % (cmd, ))
+        if show_running:
+            _pretty_print(header='Running clusterwide: {}'.format(cmd),
+                          content=None)
     cmd_file.write('EXIT\n')
     # Runs SYSMAN and call the temporary file
     result = run_script_clusterwide(cmd_file,
-                                    show_running=show_running)
+                                    show_running=False)
     # Close the file object
     cmd_file.close()
 
