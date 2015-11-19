@@ -30,6 +30,7 @@ from fabric.network import needs_host, ssh_config
 from fabric.operations import (_execute as _operations_execute,
                                _prefix_commands as operations_prefix_commands)
 from fabric.state import env, output
+from fabric.utils import puts
 
 
 __all__ = (
@@ -242,10 +243,10 @@ def _pretty_print(content, header=None):
         Optionally adds a header string with a [run] prefix
     """
     if header:
-        print('[{0}] run: {1}'.format(env.host_string, header))
+        puts('run: {}'.format(header))
     if content:
         for line in content.splitlines():
-            print('[{0}] out: {1}'.format(env.host_string, line))
+            puts('out: {}'.format(line))
 
 
 def safe_run(command):
@@ -306,7 +307,7 @@ def put(local_path=None, remote_path=None, use_glob=True):
 
 
 @_common_overrides
-def get(remote_path, local_path=None):
+def get(remote_path, local_path=None, delete_after=False):
     """
     Overrides operations.get, taking care of whether the remote_path is
     relative or absolute for remote OpenVMS host.
@@ -314,6 +315,7 @@ def get(remote_path, local_path=None):
     names are missing, (i.e. sys$login, sys$scratch) unless defined for OTHER
     (see http://bit.ly/1JSN5mB).
     local_path might be a filename or a file object.
+    Optionally deletes the remote file after successful retrieval
     """
 
     (remote_path, remote_name) = _get_path(remote_path)
@@ -324,6 +326,8 @@ def get(remote_path, local_path=None):
                        local_path=local_path,
                        use_sudo=False,  # override this, useless here
                        temp_dir="")  # same as line above
+        if delete_after:
+            run('DELETE {};0'.format(remote_name))
 
 
 def print_file(remote_filename, show_running=True):
@@ -386,9 +390,11 @@ def lsof(drive_id):
         return thing
 
 
-def run_clusterwide(cmd_list, show_running=True):
+def run_clusterwide(cmd_list, sysman_command=False, show_running=True):
     """
         Run a list of commands clusterwide with SYSMAN
+        If the command is a SYSMAN command (and doesn't need a trailing "DO"),
+        set sysman_command to True)
     """
     if not isinstance(cmd_list, list):
         cmd_list = [cmd_list]
@@ -403,7 +409,8 @@ def run_clusterwide(cmd_list, show_running=True):
     for node in cluster_nodes():
         cmd_file.write('SET ENVIRONMENT /NODE=({})\n'.format(node))
         for cmd in cmd_list:
-            cmd_file.write('DO {}\n'.format(cmd))
+            cmd_file.write('{}{}\n'.format('' if sysman_command else 'DO ',
+                                           cmd))
     cmd_file.write('EXIT\n')
 
     # Runs SYSMAN and call the temporary file
