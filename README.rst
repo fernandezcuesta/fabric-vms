@@ -37,6 +37,7 @@ An example of ``fabfile`` using ``fabric_vms.safe_run()`` wrapper:
 
 fabfile.py
 ===============================================================================
+
 .. code-block:: py
 
     from fabric.api import env, task
