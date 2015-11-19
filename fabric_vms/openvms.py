@@ -244,7 +244,7 @@ def _pretty_print(content, header=None):
         print('[{0}] run: {1}'.format(env.host_string, header))
     if content:
         for line in content.splitlines():
-            print('[{0}] run: {1}'.format(env.host_string, line))
+            print('[{0}] out: {1}'.format(env.host_string, line))
 
 
 def safe_run(command):
@@ -399,7 +399,6 @@ def run_clusterwide(cmd_list, show_running=True):
         if show_running:
             _pretty_print(header='Running clusterwide: {}'.format(cmd),
                           content=None)
-            cmd_file.write('DO WRITE SYS$OUTPUT {}\n'.format(cmd))
         cmd_file.write('DO {}\n'.format(cmd))
     cmd_file.write('EXIT\n')
     # Runs SYSMAN and call the temporary file
