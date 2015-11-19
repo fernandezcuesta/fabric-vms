@@ -405,16 +405,22 @@ def run_clusterwide(cmd_list, sysman_command=False, show_running=True):
         for cmd in cmd_list:
             _pretty_print(header='Running clusterwide: {}'.format(cmd),
                           content=None)
-    if sysman_command:
-        cmd_file.write('SET ENVIRONMENT /NODE=({})\n'.format(
-                       ','.join(cluster_nodes())))
-        for cmd in cmd_list:
-            cmd_file.write('{}\n'.format(cmd))
-    else:
-        for node in cluster_nodes():
-            cmd_file.write('SET ENVIRONMENT /NODE=({})\n'.format(node))
-            for cmd in cmd_list:
-                cmd_file.write('DO {}\n'.format(cmd))
+    cmd_file.write('SET ENVIRONMENT /NODE=({})\n'.format(
+                   ','.join(cluster_nodes())))
+    for cmd in cmd_list:
+        cmd_file.write('{}{}\n'.format('' if sysman_command else 'DO ',
+                                       cmd))
+
+    # if sysman_command:
+    #     cmd_file.write('SET ENVIRONMENT /NODE=({})\n'.format(
+    #                    ','.join(cluster_nodes())))
+    #     for cmd in cmd_list:
+    #         cmd_file.write('{}\n'.format(cmd))
+    # else:
+    #     for node in cluster_nodes():
+    #         cmd_file.write('SET ENVIRONMENT /NODE=({})\n'.format(node))
+    #         for cmd in cmd_list:
+    #             cmd_file.write('DO {}\n'.format(cmd))
     cmd_file.write('EXIT\n')
 
     # Runs SYSMAN and call the temporary file
