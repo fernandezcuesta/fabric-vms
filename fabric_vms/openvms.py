@@ -242,8 +242,9 @@ def _pretty_print(content, header=None):
     """
     if header:
         print('[%s] run: %s' % (env.host_string, header))
-    for line in content.splitlines():
-        print('[%s] out: %s' % (env.host_string, line))
+    if content:
+        for line in content.splitlines():
+            print('[%s] out: %s' % (env.host_string, line))
 
 
 def safe_run(command):
