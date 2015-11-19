@@ -131,7 +131,7 @@ def _prefix_commands(command, which):
 
     prefixes = list(env.command_prefixes)
     if env.cwd:
-        prefixes.insert(0, 'SET DEFAULT %s' % (env.cwd, ))
+        prefixes.insert(0, 'SET DEFAULT {}'.format(env.cwd))
     glue = " ; "
     prefix = (glue.join(prefixes) + glue) if prefixes else ""
     return prefix + command
@@ -241,10 +241,10 @@ def _pretty_print(content, header=None):
         Optionally adds a header string with a [run] prefix
     """
     if header:
-        print('[%s] run: %s' % (env.host_string, header))
+        print('[{0}] run: {1}'.format(env.host_string, header))
     if content:
         for line in content.splitlines():
-            print('[%s] out: %s' % (env.host_string, line))
+            print('[{0}] run: {1}'.format(env.host_string, line))
 
 
 def safe_run(command):
@@ -349,7 +349,7 @@ def lsof(drive_id):
     Empty values in tuples are filled in with NLA0: (usually the file name is
     not obtained when not enough priviledges)
     """
-    out_file = '%s:%s.DAT' % (
+    out_file = '{0}:{1}.DAT'.format(
         env.temp_dir,
         ''.join(random.SystemRandom().choice(string.ascii_uppercase +
                                              string.digits)
@@ -396,10 +396,11 @@ def run_clusterwide(cmd_list, show_running=True):
     cmd_file.write('SET ENVIRONMENT /CLUSTER\n')
 
     for cmd in cmd_list:
-        cmd_file.write('DO %s\n' % (cmd, ))
         if show_running:
             _pretty_print(header='Running clusterwide: {}'.format(cmd),
                           content=None)
+            cmd_file.write('DO WRITE SYS$OUTPUT {}\n'.format(cmd))
+        cmd_file.write('DO {}\n'.format(cmd))
     cmd_file.write('EXIT\n')
     # Runs SYSMAN and call the temporary file
     result = run_script_clusterwide(cmd_file,
