@@ -49,7 +49,6 @@ __all__ = (
            'safe_run'
 )
 
-SEPARATOR = '\r\n'  # newline separator
 env.setdefault('temp_dir', 'TCPIP$SSH_HOME')  # Default temporary file folder
 
 
@@ -60,7 +59,7 @@ class queue_job(object):
             all_jobs = run('SHOW QUEUE /BATCH /ALL | SEA SYS$PIPE %s' %
                            self.name)
         entries = {line.split()[0]: None for line
-                   in all_jobs.split(SEPARATOR)
+                   in all_jobs.splitlines()
                    if self.name in line.upper()}
 
         def find_start_params(lines, tag):
@@ -71,7 +70,7 @@ class queue_job(object):
         for entry_id in entries:
             with settings(hide('everything')):
                 this_entry = run('SHOW ENTRY {} /FULL'.format(entry_id))
-                this_entry = this_entry.split(SEPARATOR)
+                this_entry = this_entry.splitlines()
                 this_name = this_entry[-1].split()[1][1:]
                 this_param = ''.join(
                     [line.strip() for line in
@@ -393,14 +392,17 @@ def run_clusterwide(cmd_list, show_running=True):
         cmd_list = [cmd_list]
     # Create a temporary file with commands surrounded by set e/c and exit"
     cmd_file = cStringIO.StringIO()
-    cmd_file.write('SET ENVIRONMENT /CLUSTER\n')
-
-    for cmd in cmd_list:
-        if show_running:
+    if show_running:
+        for cmd in cmd_list:
             _pretty_print(header='Running clusterwide: {}'.format(cmd),
                           content=None)
-        cmd_file.write('DO {}\n'.format(cmd))
+
+    for node in cluster_nodes():
+        cmd_file.write('SET ENVIRONMENT /NODE=({})\n'.format(node))
+        for cmd in cmd_list:
+            cmd_file.write('DO {}\n'.format(cmd))
     cmd_file.write('EXIT\n')
+
     # Runs SYSMAN and call the temporary file
     result = run_script_clusterwide(cmd_file,
                                     show_running=False)
@@ -443,14 +445,14 @@ def get_shadowset_members(shadowset='dsa0:'):
     """ Returns an array with the members of a shadowset """
     members = run('SHOW DEVICE {} /BRIEF | SEA SYS$PIPE ShadowSetMember'.
                   format(shadowset))
-    return [member.split()[0] for member in members.split(SEPARATOR)]
+    return [member.split()[0] for member in members.splitlines()]
 
 
 def cluster_nodes():
     """ Returns an array with the nodes of the cluster """
     nodes = []
     with hide('everything'):
-        for line in run('SHOW CLUSTER').split(SEPARATOR):
+        for line in run('SHOW CLUSTER').splitlines():
             if line and "MEMBER " in line:
-                nodes.append(line.split('|')[1])
+                nodes.append(line.split('|')[1].strip())
     return nodes

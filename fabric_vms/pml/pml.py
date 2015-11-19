@@ -7,7 +7,7 @@ import random
 import string
 
 from fabric.api import env, hide, settings, show
-from ..openvms import run, put, SEPARATOR
+from ..openvms import run, put
 
 
 __all__ = (
