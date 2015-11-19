@@ -50,6 +50,7 @@ __all__ = (
 )
 
 env.setdefault('temp_dir', 'TCPIP$SSH_HOME')  # Default temporary file folder
+env.setdefault('terminal_width', None)  # Default terminal width is 80 columns
 
 
 class queue_job(object):
@@ -168,7 +169,9 @@ def _execute_openvms(f):
     @functools.wraps(f)
     def _wrapper(*args, **kwargs):
         wrapped_kwargs = kwargs.copy()
-        wrapped_kwargs['command'] = 'PIPE %s ; WRITE SYS$OUTPUT $SEVERITY' % (
+        wrapped_kwargs['command'] = 'PIPE %s%s; WRITE SYS$OUTPUT $SEVERITY' % (
+            'SET TERMINAL /WIDTH={} & '.format(env.terminal_width)
+            if env.terminal_width else '',
             kwargs['command'],
         )
         # Required setting for OpenVMS:
@@ -392,6 +395,7 @@ def run_clusterwide(cmd_list, show_running=True):
         cmd_list = [cmd_list]
     # Create a temporary file with commands surrounded by set e/c and exit"
     cmd_file = cStringIO.StringIO()
+
     if show_running:
         for cmd in cmd_list:
             _pretty_print(header='Running clusterwide: {}'.format(cmd),
