@@ -235,8 +235,13 @@ def run(*args, **kwargs):
     return _result
 
 
-def _pretty_print(content):
-    """ Print the output of a command with a SYSTEM [out] prefix """
+def _pretty_print(content, header=None):
+    """
+        Print the output of a command with a SYSTEM [out] prefix
+        Optionally adds a header string with a [run] prefix
+    """
+    if header:
+        print('[%s] run: %s' % (env.host_string, header))
     for line in content.splitlines():
         print('[%s] out: %s' % (env.host_string, line))
 
@@ -319,7 +324,7 @@ def get(remote_path, local_path=None):
                        temp_dir="")  # same as line above
 
 
-def print_file(remote_filename):
+def print_file(remote_filename, show_running=True):
     """
     Gets and returns the content of a remote file.
     Do this instead of call type in order to avoid console width issues.
@@ -331,7 +336,9 @@ def print_file(remote_filename):
     temp_file.seek(0)
     content = temp_file.read()
     temp_file.close()
-    _pretty_print(content)
+    _pretty_print(content,
+                  header='Showing contents of file {}:'.format(remote_filename)
+                  if show_running else None)
     return content
 
 
@@ -377,7 +384,7 @@ def lsof(drive_id):
         return thing
 
 
-def run_clusterwide(cmd_list):
+def run_clusterwide(cmd_list, show_running=False):
     """
         Run a list of commands clusterwide with SYSMAN
     """
@@ -391,14 +398,15 @@ def run_clusterwide(cmd_list):
         cmd_file.write('DO %s\n' % (cmd, ))
     cmd_file.write('EXIT\n')
     # Runs SYSMAN and call the temporary file
-    result = run_script_clusterwide(cmd_file, show_running=False)
+    result = run_script_clusterwide(cmd_file,
+                                    show_running=show_running)
     # Close the file object
     cmd_file.close()
 
     return result
 
 
-def run_script_clusterwide(sysman_script, show_running=True):
+def run_script_clusterwide(sysman_script, show_running=False):
     """ Run a script clusterwide by invoking SYSMAN """
     return run_script(dcl_script=sysman_script,
                       prefix='MCR SYSMAN',
