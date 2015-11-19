@@ -170,7 +170,7 @@ def _execute_openvms(f):
     def _wrapper(*args, **kwargs):
         wrapped_kwargs = kwargs.copy()
         wrapped_kwargs['command'] = 'PIPE %s%s ; WRITE SYS$OUTPUT $SEVERITY' \
-            % ('SET TERMINAL /WIDTH={} ; '.format(env.terminal_width)
+            % ('SET TERMINAL /WIDTH={} & '.format(env.terminal_width)
                if env.terminal_width else '',
                kwargs['command'])
         # Required setting for OpenVMS:
