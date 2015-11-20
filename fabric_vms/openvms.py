@@ -24,7 +24,7 @@ from os import path
 import fabric
 import fabric.context_managers
 from fabric.api import (abort, get as api_get, hide,
-                        put as api_put, settings, show)
+                        put as api_put, settings)
 from fabric.contrib.console import confirm
 from fabric.network import needs_host, ssh_config
 from fabric.operations import (_execute as _operations_execute,
@@ -231,29 +231,32 @@ def run(*args, **kwargs):
         - no_agent and no_keys due to SSH2
         - use_shell=False (assuming GNV isn't installed) due to DCL shell
     """
-    _result = fabric.operations.run(*args, **kwargs)
+    # stderr always returns nothing in OpenVMS
+    with hide('stderr' if output.running else 'running'):
+        _result = fabric.operations.run(*args, **kwargs)
     if output.stdout and _result.stdout:
         _pretty_print(_result.stdout)
     return _result
 
 
-def _pretty_print(content, header=None):
+def _pretty_print(content, header=None, show_prefix=False):
     """
         Print the output of a command with a SYSTEM [out] prefix
         Optionally adds a header string with a [run] prefix
+        Optionally shows/hides the [hostname] prefix
     """
-    if header:
-        puts('run: {}'.format(header))
-    if content:
+    if header and output.running:
+        puts('run: {}'.format(header), show_prefix=env.output_prefix)
+    if content and output.stdout:
         for line in content.splitlines():
-            puts('out: {}'.format(line))
+            puts('out: {}'.format(line), show_prefix=env.output_prefix)
 
 
 def safe_run(command):
     """ Calls run and prompts whether or not to continue in case of error """
     with settings(warn_only=True):
         result = run(command)
-    if result.failed and not confirm("Tests failed. Continue anyway? ",
+    if result.failed and not confirm("Last command failed. Continue anyway? ",
                                      default=False):
         abort("Aborting at user request.")
     return result
@@ -330,7 +333,7 @@ def get(remote_path, local_path=None, delete_after=False):
             run('DELETE {};0'.format(remote_name))
 
 
-def print_file(remote_filename, show_running=True):
+def print_file(remote_filename):
     """
     Gets and returns the content of a remote file.
     Do this instead of call type in order to avoid console width issues.
@@ -342,10 +345,12 @@ def print_file(remote_filename, show_running=True):
     temp_file.seek(0)
     content = temp_file.read()
     temp_file.close()
-    _pretty_print(content,
-                  header='Showing contents of file {}:'.format(remote_filename)
-                  if show_running else None)
-    return content
+    if output.stdout:
+        _pretty_print(
+            content,
+            header='Showing contents of file {}:'.format(remote_filename)
+        )
+        return content
 
 
 def lsof(drive_id):
@@ -390,7 +395,7 @@ def lsof(drive_id):
         return thing
 
 
-def run_clusterwide(cmd_list, sysman_command=False, show_running=True):
+def run_clusterwide(cmd_list, sysman_command=False):
     """
         Run a list of commands clusterwide with SYSMAN
         If the command is a SYSMAN command (and doesn't need a trailing "DO"),
@@ -401,45 +406,31 @@ def run_clusterwide(cmd_list, sysman_command=False, show_running=True):
     # Create a temporary file with commands surrounded by set e/c and exit"
     cmd_file = cStringIO.StringIO()
 
-    if show_running:
-        for cmd in cmd_list:
-            _pretty_print(header='Running clusterwide: {}'.format(cmd),
-                          content=None)
+    for cmd in cmd_list:
+        _pretty_print(header='Running clusterwide: {}'.format(cmd),
+                      content=None)
     cmd_file.write('SET ENVIRONMENT /NODE=({})\n'.format(
                    ','.join(cluster_nodes())))
     for cmd in cmd_list:
         cmd_file.write('{}{}\n'.format('' if sysman_command else 'DO ',
                                        cmd))
-
-    # if sysman_command:
-    #     cmd_file.write('SET ENVIRONMENT /NODE=({})\n'.format(
-    #                    ','.join(cluster_nodes())))
-    #     for cmd in cmd_list:
-    #         cmd_file.write('{}\n'.format(cmd))
-    # else:
-    #     for node in cluster_nodes():
-    #         cmd_file.write('SET ENVIRONMENT /NODE=({})\n'.format(node))
-    #         for cmd in cmd_list:
-    #             cmd_file.write('DO {}\n'.format(cmd))
     cmd_file.write('EXIT\n')
 
     # Runs SYSMAN and call the temporary file
-    result = run_script_clusterwide(cmd_file,
-                                    show_running=False)
+    result = run_script_clusterwide(cmd_file)
     # Close the file object
     cmd_file.close()
 
     return result
 
 
-def run_script_clusterwide(sysman_script, show_running=False):
+def run_script_clusterwide(sysman_script):
     """ Run a script clusterwide by invoking SYSMAN """
     return run_script(dcl_script=sysman_script,
-                      prefix='MCR SYSMAN',
-                      show_running=show_running)
+                      prefix='MCR SYSMAN')
 
 
-def run_script(dcl_script, prefix=None, show_running=False):
+def run_script(dcl_script, prefix=None):
     """ Run a script remotely """
     # dcl_script may be a filename, or a file-like object
     # first we need to upload the script file to the remote host
@@ -452,9 +443,8 @@ def run_script(dcl_script, prefix=None, show_running=False):
         put(dcl_script, script_filename)
 
     # then we run the script file
-    with settings(show('running') if show_running else hide('running')):
-        result = run('{}@{}'.format('%s ' % prefix if prefix else '',
-                                    script_filename))
+    result = run('{}@{}'.format('%s ' % prefix if prefix else '',
+                                script_filename))
     # Remove the temporary script file
     with settings(hide('running')):
         run('DELETE /NOLOG {};*'.format(script_filename))
