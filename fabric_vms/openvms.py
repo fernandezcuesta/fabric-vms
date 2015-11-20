@@ -434,11 +434,11 @@ def run_script(dcl_script, prefix=None):
     """ Run a script remotely """
     # dcl_script may be a filename, or a file-like object
     # first we need to upload the script file to the remote host
-    is_fabric_script = isinstance(dcl_script, str)
+    is_fabric_script = not isinstance(dcl_script, str)
     if is_fabric_script:
-        script_filename = dcl_script
-    else:
         script_filename = '{}FABRIC_TEMP.TMP'.format(env.temp_dir)
+    else:
+        script_filename = dcl_script
 
     with hide('running'):
         put(dcl_script, script_filename)
