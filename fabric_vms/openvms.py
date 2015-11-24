@@ -366,7 +366,7 @@ def get(remote_path, local_path=None, delete_after=False):
                 result.local_path = local_path if path.isdir(local_path) \
                                     else '/'.join([local_path,
                                                    pending_file[1]])
-            successfully_downloaded.append(result)
+            successfully_downloaded.extend(result)
             if delete_after:
                 run('DELETE {};{}'.format(remote_path, last_version))
 
