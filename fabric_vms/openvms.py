@@ -38,7 +38,9 @@ __all__ = (
            'cluster_nodes',
            'exists',
            'get',
+           '_get_path',  # REMOVE THIS
            'get_shadowset_members',
+           'ls',
            'lsof',
            'print_file',
            'put',
@@ -269,6 +271,7 @@ def exists(remote_file):
 
 
 def _get_path(remote_path):
+    """ Split an OpenVMS file name into its path, name and version number """
     if ':' in remote_path:  # is an absolute remote path
         (remote_path, remote_name) = remote_path.split(':')
         remote_path = '/{}'.format(remote_path)
@@ -278,11 +281,16 @@ def _get_path(remote_path):
     if ']' in remote_name:  # directory was specified
         (remote_dir, remote_name) = remote_name.split(']')
         remote_path = '{0}{1}{2}'.format(
-            (remote_path.rstrip('/'), '/') if remote_path else ('', ''),
+            remote_path.rstrip('/') if remote_path else '',
+            '/' if remote_path else '',
             remote_dir[1:]  # remote trailing '['
         )
+    if ';' in remote_name:  # name contains version number
+        (remote_name, remote_version) = remote_name.split(';')
+    else:
+        remote_version = '0'
 
-    return (remote_path, remote_name)
+    return (remote_path, remote_name, remote_version)
 
 
 @_common_overrides
@@ -296,10 +304,11 @@ def put(local_path=None, remote_path=None, use_glob=True):
     local_path might be a filename or a file object.
     """
 
-    (remote_path, remote_name) = _get_path(remote_path or env.temp_dir)
+    (remote_path, remote_name, _) = _get_path(remote_path or env.temp_dir)
     if isinstance(local_path, str):
         local_path = path.abspath(local_path)
-    with cd(remote_path):
+
+    with cd(remote_path):  # put does honor cd
         return api_put(local_path=local_path,
                        remote_path=remote_name,
                        use_glob=use_glob,
@@ -312,25 +321,54 @@ def put(local_path=None, remote_path=None, use_glob=True):
 @_common_overrides
 def get(remote_path, local_path=None, delete_after=False):
     """
-    Overrides operations.get, taking care of whether the remote_path is
-    relative or absolute for remote OpenVMS host.
-    Bear in mind that SFTP server runs as a detached process and some logical
+     Overrides operations.get, taking care of whether the remote_path is
+    relative or absolute for remote OpenVMS host and file versioning.
+
+     If no version number is specified, only last version is downloaded.
+
+     Bear in mind that SFTP server runs as a detached process and some logical
     names are missing, (i.e. sys$login, sys$scratch) unless defined for OTHER
     (see http://bit.ly/1JSN5mB).
-    local_path might be a filename or a file object.
-    Optionally deletes the remote file after successful retrieval
-    """
 
-    (remote_path, remote_name) = _get_path(remote_path)
+    Parameters:
+    - remote_path: string contanining the remote filespec to be downloaded
+    - local_path: might be a filename or a file object
+    - delete_after: delete the remote file after successful retrieval
+
+    Returns: Iterable with the API get result for each file
+    """
+    remote_path = remote_path.split(';')[0]  # ignore version numbers
+    successfully_downloaded = []
     if isinstance(local_path, str):
         local_path = path.abspath(local_path)
-    with cd(remote_path):
-        return api_get(remote_name,
-                       local_path=local_path,
-                       use_sudo=False,  # override this, useless here
-                       temp_dir="")  # same as line above
-        if delete_after:
-            run('DELETE {};0'.format(remote_name))
+
+    # (remote_path, remote_name, _) = _get_path(remote_path)
+    with hide('everything'):
+        files_to_get = ls(remote_path)
+
+    for pending_file in files_to_get:
+        # only last version (max) will be downloaded
+        last_version = max(files_to_get[pending_file])
+        remote_file = '{};{}'.format('/'.join(pending_file),
+                                     last_version)
+        result = api_get(remote_path=remote_file,
+                         local_path=local_path,
+                         use_sudo=False,  # override this, useless here
+                         temp_dir="")  # same as line above
+        if result.succeeded:
+            successfully_downloaded.append(result)
+            if delete_after:
+                run('DELETE {};{}'.format(remote_path, last_version))
+
+    return successfully_downloaded
+
+        # # with cd(pending_file[0]):  # remote path
+        # #     return api_get(remote_name,
+        # #                    local_path=local_path,
+        # #                    use_sudo=False,  # override this, useless here
+        # #                    temp_dir="")  # same as line above
+        #     if delete_after:
+        #         run('DELETE {};0'.format(remote_name))
 
 
 def print_file(remote_filename):
@@ -352,6 +390,26 @@ def print_file(remote_filename):
         )
         return content
 
+def ls(remote_path=None):
+    """
+    Handler for run('DIR %s' % remote_folder) taking care of file versioning.
+
+    Parameters:
+     - remote_path: Path on the remote host, defaults to 'SYS$LOGIN'
+
+    Returns:
+     list of tuples (file_path, file_name, file_version)
+    """
+    outcome = {}
+    ls_res = run('DIR /NOHEADING /NOTRAILING /BRIEF /NOSIZE /NODATE %s' %
+                 (remote_path or 'SYS$LOGIN'))
+    for remote_file in ls_res.splitlines():
+        (rem_path, rem_name, rem_vers) = _get_path(remote_file)
+        if (rem_path, rem_name) in outcome:
+            outcome[(rem_path, rem_name)].append(int(rem_vers))
+        else:
+            outcome[(rem_path, rem_name)] = [int(rem_vers)]
+    return outcome
 
 def lsof(drive_id):
     """
