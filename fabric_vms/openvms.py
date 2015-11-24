@@ -363,11 +363,9 @@ def get(remote_path, local_path=None, delete_after=False):
                          temp_dir="")  # same as line above
         if result.succeeded:
             if isinstance(local_path, str):
-                if path.isdir(local_path):
-                    local_path = '/'.join([local_path,
-                                           env.host_string,
-                                           pending_file[1]])
-                result.local_path = local_path
+                result.local_path = local_path if path.isdir(local_path) \
+                                    else '/'.join([local_path,
+                                                   pending_file[1]])
             successfully_downloaded.append(result)
             if delete_after:
                 run('DELETE {};{}'.format(remote_path, last_version))
