@@ -1,3 +1,4 @@
+- 0.2.4 - Fixes for get and put, add ls
 - 0.2.3 - Add some minor methods and refactor
 - 0.2.2 - Add documentation example
 - 0.2.1 - Add safe_run, get_shadowset_members

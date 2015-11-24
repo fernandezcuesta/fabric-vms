@@ -19,7 +19,7 @@ import random
 import re
 import string
 from collections import namedtuple
-from os import path
+from os import getcwd, path
 
 import fabric
 import fabric.context_managers
@@ -339,12 +339,18 @@ def get(remote_path, local_path=None, delete_after=False):
     """
     remote_path = remote_path.split(';')[0]  # ignore version numbers
     successfully_downloaded = []
+    if not local_path:
+        local_path = getcwd()  # by default download to current directory
     if isinstance(local_path, str):
         local_path = path.abspath(local_path)
 
     # (remote_path, remote_name, _) = _get_path(remote_path)
     with hide('everything'):
         files_to_get = ls(remote_path)
+
+    if not isinstance(local_path, str) and len(files_to_get) > 1:
+        puts('Only one file can be downloaded to a file object at a time!')
+        return
 
     for pending_file in files_to_get:
         # only last version (max) will be downloaded
@@ -356,6 +362,12 @@ def get(remote_path, local_path=None, delete_after=False):
                          use_sudo=False,  # override this, useless here
                          temp_dir="")  # same as line above
         if result.succeeded:
+            if isinstance(local_path, str):
+                if path.isdir(local_path):
+                    local_path = '/'.join([local_path,
+                                           env.host_string,
+                                           pending_file[1]])
+                result.local_path = local_path
             successfully_downloaded.append(result)
             if delete_after:
                 run('DELETE {};{}'.format(remote_path, last_version))
