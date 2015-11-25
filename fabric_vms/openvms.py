@@ -506,7 +506,7 @@ def run_script(dcl_script, prefix=None):
     if is_fabric_script:
         script_filename = '{}FABRIC_TEMP.TMP'.format(env.temp_dir)
     else:
-        script_filename = os.path.basename(dcl_script)
+        script_filename = path.basename(dcl_script)
 
     with hide('running'):
         put(dcl_script, script_filename)
