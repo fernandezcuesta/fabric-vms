@@ -506,7 +506,7 @@ def run_script(dcl_script, prefix=None):
     if is_fabric_script:
         script_filename = '{}FABRIC_TEMP.TMP'.format(env.temp_dir)
     else:
-        script_filename = dcl_script
+        script_filename = os.path.basename(dcl_script)
 
     with hide('running'):
         put(dcl_script, script_filename)
@@ -516,9 +516,8 @@ def run_script(dcl_script, prefix=None):
         result = run('{}@{}'.format('%s ' % prefix if prefix else '',
                                     script_filename))
     # Remove the temporary script file
-    if is_fabric_script:
-        with settings(hide('everything')):
-            run('DELETE /NOLOG {};*'.format(script_filename))
+    with settings(hide('everything')):
+        run('DELETE /NOLOG {};*'.format(script_filename))
     return result
 
 
