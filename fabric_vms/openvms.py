@@ -33,8 +33,7 @@ from fabric.state import env, output
 from fabric.utils import puts
 
 
-__all__ = (
-           'cd',
+__all__ = ('cd',
            'cluster_nodes',
            'exists',
            'get',
@@ -49,8 +48,8 @@ __all__ = (
            'run_script',
            'run_clusterwide',
            'run_script_clusterwide',
-           'safe_run'
-)
+           'safe_run',
+           )
 
 env.setdefault('temp_dir', 'TCPIP$SSH_HOME')  # Default temporary file folder
 env.setdefault('terminal_width', None)  # Default terminal width is 80 columns
@@ -116,12 +115,16 @@ def _check_if_using_the_correct_account():
     # OpenVMS' SSH2 doesn't handle well the connections where both a wrong
     # pkey and a valid password are given with paramiko under the hoods.
     # This is an issue with paramiko as of 1.16 (see related Issue#519)
-    if 'user' in ssh_config(env.host_string) and 'user' in env:
-        if ssh_config(env.host_string)['user'].upper() != env.user.upper():
-            # Avoid using private keys if user doesn't match env.user
+    with settings(use_ssh_config=True):
+        if 'user' in ssh_config() and 'user' in env:
+            if ssh_config(env.host_string)['user'].upper() != env.user.upper():
+                # Avoid using private keys if user doesn't match env.user
+                puts('Avoid using ssh_config')
+                env.use_ssh_config = False
+        else:
+            puts('Not using ssh_config:\n {}'
+                 .format(ssh_config(env.host_string)))
             env.use_ssh_config = False
-    else:
-        env.use_ssh_config = False
 
 
 def _prefix_commands(command, which):
@@ -363,22 +366,21 @@ def get(remote_path, local_path=None, delete_after=False):
                          temp_dir="")  # same as line above
         if result.succeeded:
             if isinstance(local_path, str):
-                result.local_path = local_path if path.isdir(local_path) \
-                                    else '/'.join([local_path,
-                                                   pending_file[1]])
+                result.local_path = local_path if path.isdir(local_path) else \
+                    '/'.join([local_path, pending_file[1]])
             successfully_downloaded.extend(result)
             if delete_after:
                 run('DELETE {};{}'.format(remote_path, last_version))
 
     return successfully_downloaded
 
-        # # with cd(pending_file[0]):  # remote path
-        # #     return api_get(remote_name,
-        # #                    local_path=local_path,
-        # #                    use_sudo=False,  # override this, useless here
-        # #                    temp_dir="")  # same as line above
-        #     if delete_after:
-        #         run('DELETE {};0'.format(remote_name))
+    # with cd(pending_file[0]):  # remote path
+    #     return api_get(remote_name,
+    #                    local_path=local_path,
+    #                    use_sudo=False,  # override this, useless here
+    #                    temp_dir="")  # same as line above
+    #     if delete_after:
+    #         run('DELETE {};0'.format(remote_name))
 
 
 def print_file(remote_filename):
@@ -400,6 +402,7 @@ def print_file(remote_filename):
         )
         return content
 
+
 def ls(remote_path=None):
     """
     Handler for run('DIR %s' % remote_folder) taking care of file versioning.
@@ -420,6 +423,7 @@ def ls(remote_path=None):
         else:
             outcome[(rem_path, rem_name)] = [int(rem_vers)]
     return outcome
+
 
 def lsof(drive_id):
     """
@@ -456,9 +460,10 @@ def lsof(drive_id):
             file_tuple = open_file.split()
             n = len(file_tuple) - len(file_object._fields)
             if n > 0:
-                file_tuple = [' '.join(file_tuple[0:n+1])] + file_tuple[n+1:]
+                file_tuple = [' '.join(file_tuple[0:n + 1])] + \
+                    file_tuple[n + 1:]
             if n < 0:
-                file_tuple.append(['NLA0:']*abs(n))
+                file_tuple.append(['NLA0:'] * abs(n))
             thing.append(file_object._make(file_tuple))
         return thing
 

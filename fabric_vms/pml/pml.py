@@ -10,10 +10,9 @@ from fabric.api import env, hide, settings, show
 from ..openvms import run, put
 
 
-__all__ = (
-           'run_pml_commands',
-           'run_pml_file'
-)
+__all__ = ('run_pml_commands',
+           'run_pml_file',
+           )
 
 
 def run_pml_commands(cmd_list):
@@ -66,10 +65,9 @@ def run_pml_file(pml_file, out_file=None, show_running=True):
             '/INPUT=%s' % (pml_filename, ))
 
     with hide('running'):
-        # Type the contents of the output file
-        run('TYPE %s' % (out_file, ))
         # Remove the temporary pml_file
         run('DELETE /NOLOG %s;*' % (pml_filename, ))
-        # If any, delete the temporary output file
+        # If any, get the output and delete the temporary file
         if out_file:
+            run('TYPE %s' % (out_file, ))
             run('DELETE /NOLOG %s;*' % (out_file, ))
